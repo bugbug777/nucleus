@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { RefreshCw, MapPin, Wind } from 'lucide-vue-next'
 import { fetchAqiData, type AqiData } from '@/lib/aqi'
-import { TAIWAN_STATIONS } from '@/lib/taiwan_stations'
+import { loadTaiwanStations, type Station } from '@/lib/taiwan_stations'
 
 const props = defineProps<{
   id: string
@@ -24,6 +24,7 @@ const aqiData = ref<AqiData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedStationUid = ref<string>('auto')
+const stations = ref<Station[]>([])
 
 const token = import.meta.env.VITE_WAQI_TOKEN
 
@@ -98,11 +99,7 @@ const status = computed(() => {
   return { label: 'Hazardous', label_zh: '危害', color: 'bg-rose-900', text: 'text-rose-900' }
 })
 
-const displayStationName = computed(() => {
-  if (selectedStationUid.value !== 'auto') {
-    return TAIWAN_STATIONS.find(s => s.uid.toString() === selectedStationUid.value)?.name || '未知站點'
-  }
-  
+const autoStationLabel = computed(() => {
   if (aqiData.value) {
     const cityName = aqiData.value.city.name
     // Extract name inside parentheses if available (common for Chinese station names in WAQI)
@@ -114,6 +111,14 @@ const displayStationName = computed(() => {
   }
   
   return '自動定位 (偵測中...)'
+})
+
+const displayStationName = computed(() => {
+  if (selectedStationUid.value !== 'auto') {
+    return TAIWAN_STATIONS.find(s => s.uid.toString() === selectedStationUid.value)?.name || '未知站點'
+  }
+  
+  return autoStationLabel.value
 })
 
 onMounted(fetchData)
@@ -166,9 +171,9 @@ onMounted(fetchData)
                 <SelectGroup>
                   <SelectLabel class="text-[9px] uppercase tracking-widest text-gray-500 font-black px-2 py-1.5">偵測地點</SelectLabel>
                   <SelectItem value="auto" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
-                    {{ displayStationName }}
+                    {{ autoStationLabel }}
                   </SelectItem>
-                  <SelectItem v-for="station in TAIWAN_STATIONS" :key="station.uid" :value="station.uid.toString()" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
+                  <SelectItem v-for="station in stations" :key="station.uid" :value="station.uid.toString()" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ station.name }}
                   </SelectItem>
                 </SelectGroup>
