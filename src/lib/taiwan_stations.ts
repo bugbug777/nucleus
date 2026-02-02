@@ -10,7 +10,7 @@ export async function loadTaiwanStations(): Promise<Station[]> {
     return stationsCache;
   }
   
-  const response = await fetch('/taiwan-stations.json');
+  const response = await fetch(`${import.meta.env.BASE_URL}taiwan-stations.json`);
   if (!response.ok) {
     throw new Error('Failed to load Taiwan stations data');
   }

@@ -120,10 +120,12 @@ const displayStationName = computed(() => {
 onMounted(async () => {
   try {
     stations.value = await loadTaiwanStations()
+    await fetchData()
   } catch (e) {
     console.error('Failed to load stations:', e)
+    error.value = 'Failed to load station data'
+    loading.value = false
   }
-  await fetchData()
 })
 </script>
 
