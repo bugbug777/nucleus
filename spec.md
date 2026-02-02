@@ -11,7 +11,7 @@ Nucleus is a highly modular personal management environment. The core architectu
 
 ### State Management
 - **Pinia**: Official state management for Vue.
-- **Core Store**: Manages the registry of tools, layout states (grid vs. detached), and global settings.
+- **Core Store**: Manages the registry of tools, including visibility (`active`) and windowing state (`detached`).
 
 ### Environment Security
 - **dotenv (.env)**: Vite-native environment variable support.
@@ -21,20 +21,23 @@ Nucleus is a highly modular personal management environment. The core architectu
 ### UI Architecture
 - **Shadcn Vue**: Built on Radix UI for accessible, premium components.
 - **Styling**: Tailwind CSS v4 with custom theme tokens.
+- **Icons**: Lucide Vue Next for consistent iconography.
 
 ## 🏗 Modular Architecture Details
 
 ### 1. Unified Tool Interface (TypeScript Definitions)
 ```typescript
-interface ToolSettings {
-  refreshInterval?: number;
-  [key: string]: any;
+interface Tool {
+    id: string;
+    name: string;
+    component: string;
+    active: boolean;
+    detached: boolean;
 }
 
 interface ToolProps {
-  id: string;
-  settings?: ToolSettings;
-  isDetached: boolean;
+    id: string;
+    isDetached: boolean;
 }
 ```
 
@@ -43,5 +46,11 @@ The `useCoreStore` maintains a `tools` state to track active and detached tools.
 
 ## 🚀 Feature: AQI Tool
 - **Data Source**: WAQI API.
-- **UI**: Shadcn `Card`, `Badge`, and `Skeleton` for a premium loading experience.
+- **Localization**:
+    - **Taiwan Stations**: Includes a dedicated registry of Taiwan-specific stations (`taiwan_stations.ts`) for manual selection.
+    - **Multilingual Support**: Status labels and station names available in both English and Traditional Chinese.
+- **Features**:
+    - **Auto-location**: Uses browser geolocation to fetch the nearest station.
+    - **Manual Selection**: Dropdown menu to switch between specific Taiwan stations.
+- **UI**: Shadcn `Card`, `Badge`, `Select`, and `Skeleton` for a premium loading experience.
 - **Visuals**: Dynamic color-coded status indices and glassmorphism styling.
