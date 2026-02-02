@@ -29,7 +29,10 @@ export interface WaqiResponse {
 
 export async function fetchAqiData(token: string, uid?: number, geo?: { lat: number; lng: number }): Promise<AqiData> {
     let endpoint = 'here';
-    if (uid) {
+    if (uid !== undefined) {
+        if (!Number.isFinite(uid) || uid < 0) {
+            throw new Error(`Invalid uid: expected a non-negative finite number, got ${uid}`);
+        }
         endpoint = `@${uid}`;
     } else if (geo) {
         endpoint = `geo:${geo.lat};${geo.lng}`;
