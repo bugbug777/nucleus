@@ -123,7 +123,7 @@ onMounted(async () => {
     await fetchData()
   } catch (e) {
     console.error('Failed to load stations:', e)
-    error.value = 'Failed to load station data'
+    error.value = 'Failed to load station data. Please refresh the page.'
     loading.value = false
   }
 })
