@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Button } from '@/components/ui/button'
