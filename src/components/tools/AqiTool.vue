@@ -60,7 +60,17 @@ const fetchData = async () => {
     }
     
     const isAuto = selectedStationUid.value === 'auto'
-    const uid = isAuto ? undefined : parseInt(selectedStationUid.value)
+    
+    let uid: number | undefined = undefined
+    if (!isAuto) {
+      const parsed = Number(selectedStationUid.value)
+      if (!Number.isFinite(parsed)) {
+        error.value = 'Invalid station selection.'
+        loading.value = false
+        return
+      }
+      uid = parsed
+    }
     
     let geo = undefined
     if (isAuto) {
