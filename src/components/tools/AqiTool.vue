@@ -27,7 +27,7 @@ const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedStationUid = ref<string>('auto')
 
-const token = import.meta.env.VITE_WAQI_TOKEN || 'demo'
+const token = import.meta.env.VITE_WAQI_TOKEN
 
 const getBrowserLocation = (): Promise<{ lat: number, lng: number } | null> => {
   return new Promise((resolve) => {
@@ -55,6 +55,12 @@ const fetchData = async () => {
   loading.value = true
   error.value = null
   try {
+    if (!token) {
+      error.value = 'API Token Missing. Please check your .env file.'
+      loading.value = false
+      return
+    }
+    
     const isAuto = selectedStationUid.value === 'auto'
     const uid = isAuto ? undefined : parseInt(selectedStationUid.value)
     
@@ -91,8 +97,11 @@ const displayStationName = computed(() => {
   
   if (aqiData.value) {
     const cityName = aqiData.value.city.name
-    const match = cityName.match(/\(([\u4e00-\u9fa5]+)\)/)
+    // Extract name inside parentheses if available (common for Chinese station names in WAQI)
+    const match = cityName.match(/\(([^)]+)\)/)
     if (match) return `${match[1]} (自動定位)`
+    
+    // Fallback: use first part of comma-separated string or full name
     return `${cityName.split(',')[0]} (自動定位)`
   }
   
@@ -203,7 +212,7 @@ onMounted(fetchData)
         </button>
         <div class="flex items-center gap-2">
            <span v-if="selectedStationUid !== 'auto'" class="text-[9px] text-gray-600 font-mono uppercase">UID: {{ aqiData.city.name.includes('@') ? aqiData.city.name.split('@')[1] : selectedStationUid }}</span>
-           <span class="text-[9px] text-gray-600 font-mono">ID: {{ id }}</span>
+           <span class="text-[9px] text-gray-600 font-mono" title="Location data is used only for proximity calculations via WAQI API and is not stored.">ID: {{ id }}</span>
         </div>
       </div>
     </div>
