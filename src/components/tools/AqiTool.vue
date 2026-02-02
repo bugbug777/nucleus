@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/select'
 import { RefreshCw, MapPin, Wind } from 'lucide-vue-next'
 import { fetchAqiData, type AqiData } from '@/lib/aqi'
-import { TAIWAN_STATIONS } from '@/lib/taiwan_stations'
+import { loadTaiwanStations, type Station } from '@/lib/taiwan_stations'
 
 const props = defineProps<{
   id: string
@@ -24,6 +24,7 @@ const aqiData = ref<AqiData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedStationUid = ref<string>('auto')
+const stations = ref<Station[]>([])
 
 const token = import.meta.env.VITE_WAQI_TOKEN
 
@@ -172,7 +173,7 @@ onMounted(fetchData)
                   <SelectItem value="auto" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ autoStationLabel }}
                   </SelectItem>
-                  <SelectItem v-for="station in TAIWAN_STATIONS" :key="station.uid" :value="station.uid.toString()" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
+                  <SelectItem v-for="station in stations" :key="station.uid" :value="station.uid.toString()" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ station.name }}
                   </SelectItem>
                 </SelectGroup>
