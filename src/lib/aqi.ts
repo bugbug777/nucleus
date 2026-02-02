@@ -27,8 +27,9 @@ export interface WaqiResponse {
     data: AqiData;
 }
 
-export async function fetchAqiData(token: string): Promise<AqiData> {
-    const response = await fetch(`https://api.waqi.info/feed/here/?token=${token}`);
+export async function fetchAqiData(token: string, uid?: number): Promise<AqiData> {
+    const endpoint = uid ? `@${uid}` : 'here';
+    const response = await fetch(`https://api.waqi.info/feed/${endpoint}/?token=${token}`);
     const json: WaqiResponse = await response.json();
 
     if (json.status !== 'ok') {
