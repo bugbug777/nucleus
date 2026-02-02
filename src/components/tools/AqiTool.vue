@@ -11,7 +11,6 @@ import {
   SelectItem,
   SelectLabel,
   SelectTrigger,
-  SelectValue,
 } from '@/components/ui/select'
 import { RefreshCw, MapPin, Wind } from 'lucide-vue-next'
 import { fetchAqiData, type AqiData } from '@/lib/aqi'
