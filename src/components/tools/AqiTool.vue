@@ -29,12 +29,41 @@ const selectedStationUid = ref<string>('auto')
 
 const token = import.meta.env.VITE_WAQI_TOKEN || 'demo'
 
+const getBrowserLocation = (): Promise<{ lat: number, lng: number } | null> => {
+  return new Promise((resolve) => {
+    if (!navigator.geolocation) {
+      resolve(null)
+      return
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude
+        })
+      },
+      () => {
+        resolve(null)
+      },
+      { timeout: 5000 }
+    )
+  })
+}
+
 const fetchData = async () => {
   loading.value = true
   error.value = null
   try {
-    const uid = selectedStationUid.value === 'auto' ? undefined : parseInt(selectedStationUid.value)
-    aqiData.value = await fetchAqiData(token, uid)
+    const isAuto = selectedStationUid.value === 'auto'
+    const uid = isAuto ? undefined : parseInt(selectedStationUid.value)
+    
+    let geo = undefined
+    if (isAuto) {
+      geo = await getBrowserLocation() || undefined
+    }
+    
+    aqiData.value = await fetchAqiData(token, uid, geo)
   } catch (e) {
     error.value = 'Failed to load air quality data'
   } finally {
