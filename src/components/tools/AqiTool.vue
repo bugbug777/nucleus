@@ -115,13 +115,20 @@ const autoStationLabel = computed(() => {
 
 const displayStationName = computed(() => {
   if (selectedStationUid.value !== 'auto') {
-    return TAIWAN_STATIONS.find(s => s.uid.toString() === selectedStationUid.value)?.name || '未知站點'
+    return stations.value.find(s => s.uid.toString() === selectedStationUid.value)?.name || '未知站點'
   }
   
   return autoStationLabel.value
 })
 
-onMounted(fetchData)
+onMounted(async () => {
+  fetchData()
+  try {
+    stations.value = await loadTaiwanStations()
+  } catch (e) {
+    console.error('Failed to load Taiwan stations:', e)
+  }
+})
 </script>
 
 <template>
