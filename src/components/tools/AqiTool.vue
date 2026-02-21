@@ -11,7 +11,7 @@ import {
   SelectLabel,
   SelectTrigger,
 } from '@/components/ui/select'
-import { RefreshCw, MapPin, Wind } from 'lucide-vue-next'
+import { RefreshCw, MapPin, Wind, Star } from 'lucide-vue-next'
 import { fetchAqiData, type MoenvAqiData } from '@/lib/aqi'
 import { loadTaiwanStations, type Station } from '@/lib/taiwan_stations'
 
@@ -24,6 +24,7 @@ const aqiData = ref<MoenvAqiData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedStationUid = ref<string>('auto')
+const favoriteStationUid = ref<string | null>(null)
 const stations = ref<Station[]>([])
 
 const token = import.meta.env.VITE_MOENV_API_KEY
@@ -114,7 +115,31 @@ const displayStationName = computed(() => {
   return autoStationLabel.value
 })
 
+const toggleFavorite = () => {
+  if (selectedStationUid.value === 'auto') return
+  
+  if (favoriteStationUid.value === selectedStationUid.value) {
+    // Unset favorite
+    favoriteStationUid.value = null
+    localStorage.removeItem('nucleus_aqi_favorite_station')
+  } else {
+    // Set favorite
+    favoriteStationUid.value = selectedStationUid.value
+    localStorage.setItem('nucleus_aqi_favorite_station', selectedStationUid.value)
+  }
+}
+
+const isFavorite = computed(() => {
+  return selectedStationUid.value !== 'auto' && favoriteStationUid.value === selectedStationUid.value
+})
+
 onMounted(async () => {
+  const savedFav = localStorage.getItem('nucleus_aqi_favorite_station')
+  if (savedFav) {
+    favoriteStationUid.value = savedFav
+    selectedStationUid.value = savedFav
+  }
+  
   fetchData()
   try {
     if (token) {
@@ -161,7 +186,7 @@ onMounted(async () => {
       <div class="space-y-6">
         <!-- Location Selection & Time -->
         <div class="flex justify-between items-center">
-          <div class="flex-1 mr-4">
+          <div class="flex-1 mr-2 flex items-center">
             <Select v-model="selectedStationUid">
               <SelectTrigger class="w-full h-7 bg-white/5 border-white/10 text-[10px] font-bold uppercase tracking-wider text-gray-400 hover:bg-white/10 transition-colors">
                 <div class="flex items-center truncate">
@@ -177,10 +202,22 @@ onMounted(async () => {
                   </SelectItem>
                   <SelectItem v-for="station in stations" :key="station.uid" :value="station.uid" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ station.name }}
+                    <Star v-if="station.uid === favoriteStationUid" class="w-3 h-3 ml-2 inline-block text-nucleus-accent" fill="currentColor" />
                   </SelectItem>
                 </SelectGroup>
               </SelectContent>
             </Select>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              class="h-7 w-7 ml-1 shrink-0 bg-white/5 border border-white/10 hover:bg-white/10 cursor-pointer p-0 flex items-center justify-center transition-colors"
+              :class="{ 'text-nucleus-accent': isFavorite, 'text-gray-400': !isFavorite }"
+              @click="toggleFavorite"
+              :disabled="selectedStationUid === 'auto'"
+              title="設定偏好站點"
+            >
+              <Star class="w-3.5 h-3.5" :fill="isFavorite ? 'currentColor' : 'none'" />
+            </Button>
           </div>
           <div class="text-gray-500 text-[10px] font-medium whitespace-nowrap">
             {{ aqiData.publishtime.split(' ')[1] }}
