@@ -12,7 +12,7 @@ import {
   SelectTrigger,
 } from '@/components/ui/select'
 import { RefreshCw, MapPin, Wind } from 'lucide-vue-next'
-import { fetchAqiData, type AqiData } from '@/lib/aqi'
+import { fetchAqiData, type MoenvAqiData } from '@/lib/aqi'
 import { loadTaiwanStations, type Station } from '@/lib/taiwan_stations'
 
 const props = defineProps<{
@@ -20,13 +20,13 @@ const props = defineProps<{
   isDetached: boolean
 }>()
 
-const aqiData = ref<AqiData | null>(null)
+const aqiData = ref<MoenvAqiData | null>(null)
 const loading = ref(true)
 const error = ref<string | null>(null)
 const selectedStationUid = ref<string>('auto')
 const stations = ref<Station[]>([])
 
-const token = import.meta.env.VITE_WAQI_TOKEN
+const token = import.meta.env.VITE_MOENV_API_KEY
 
 const getBrowserLocation = (): Promise<{ lat: number, lng: number } | null> => {
   return new Promise((resolve) => {
@@ -62,15 +62,9 @@ const fetchData = async () => {
     
     const isAuto = selectedStationUid.value === 'auto'
     
-    let uid: number | undefined = undefined
+    let sitename: string | undefined = undefined
     if (!isAuto) {
-      const parsed = Number(selectedStationUid.value)
-      if (!Number.isFinite(parsed)) {
-        error.value = 'Invalid station selection.'
-        loading.value = false
-        return
-      }
-      uid = parsed
+      sitename = selectedStationUid.value
     }
     
     let geo = undefined
@@ -78,9 +72,13 @@ const fetchData = async () => {
       geo = await getBrowserLocation() || undefined
     }
     
-    aqiData.value = await fetchAqiData(token, uid, geo)
-  } catch (e) {
-    error.value = 'Failed to load air quality data'
+    aqiData.value = await fetchAqiData(token, sitename, geo)
+    if (isAuto && !autoStationName.value) {
+      autoStationName.value = aqiData.value.sitename
+    }
+  } catch (e: any) {
+    console.error('AQI Fetch Error:', e)
+    error.value = e?.stack || String(e) || 'Failed to load air quality data'
   } finally {
     loading.value = false
   }
@@ -90,7 +88,7 @@ watch(selectedStationUid, fetchData)
 
 const status = computed(() => {
   if (!aqiData.value) return null
-  const aqi = aqiData.value.aqi
+  const aqi = Number(aqiData.value.aqi)
   if (aqi <= 50) return { label: 'Good', label_zh: '良好', color: 'bg-green-500', text: 'text-green-500' }
   if (aqi <= 100) return { label: 'Moderate', label_zh: '普通', color: 'bg-yellow-500', text: 'text-yellow-500' }
   if (aqi <= 150) return { label: 'Unhealthy (Sensitive)', label_zh: '對敏感族群不健康', color: 'bg-orange-500', text: 'text-orange-500' }
@@ -99,23 +97,18 @@ const status = computed(() => {
   return { label: 'Hazardous', label_zh: '危害', color: 'bg-rose-900', text: 'text-rose-900' }
 })
 
+const autoStationName = ref<string>('')
+
 const autoStationLabel = computed(() => {
-  if (aqiData.value) {
-    const cityName = aqiData.value.city.name
-    // Extract name inside parentheses if available (common for Chinese station names in WAQI)
-    const match = cityName.match(/\(([^)]+)\)/)
-    if (match) return `${match[1]} (自動定位)`
-    
-    // Fallback: use first part of comma-separated string or full name
-    return `${cityName.split(',')[0]} (自動定位)`
+  if (autoStationName.value) {
+    return `${autoStationName.value} (自動定位)`
   }
-  
   return '自動定位 (偵測中...)'
 })
 
 const displayStationName = computed(() => {
   if (selectedStationUid.value !== 'auto') {
-    return stations.value.find(s => s.uid.toString() === selectedStationUid.value)?.name || '未知站點'
+    return stations.value.find((s: Station) => s.uid === selectedStationUid.value)?.name || '未知站點'
   }
   
   return autoStationLabel.value
@@ -124,7 +117,9 @@ const displayStationName = computed(() => {
 onMounted(async () => {
   fetchData()
   try {
-    stations.value = await loadTaiwanStations()
+    if (token) {
+      stations.value = await loadTaiwanStations(token)
+    }
   } catch (e) {
     console.error('Failed to load Taiwan stations:', e)
   }
@@ -180,7 +175,7 @@ onMounted(async () => {
                   <SelectItem value="auto" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ autoStationLabel }}
                   </SelectItem>
-                  <SelectItem v-for="station in stations" :key="station.uid" :value="station.uid.toString()" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
+                  <SelectItem v-for="station in stations" :key="station.uid" :value="station.uid" class="text-xs focus:bg-white/10 focus:text-white cursor-pointer py-2">
                     {{ station.name }}
                   </SelectItem>
                 </SelectGroup>
@@ -188,7 +183,7 @@ onMounted(async () => {
             </Select>
           </div>
           <div class="text-gray-500 text-[10px] font-medium whitespace-nowrap">
-            {{ aqiData.time.s.split(' ')[1] }}
+            {{ aqiData.publishtime.split(' ')[1] }}
           </div>
         </div>
 
@@ -212,15 +207,15 @@ onMounted(async () => {
         <div class="grid grid-cols-3 gap-3">
           <div class="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors">
             <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">PM2.5</div>
-            <div class="text-sm font-semibold tracking-tight">{{ aqiData.iaqi.pm25?.v || 'N/A' }}</div>
+            <div class="text-sm font-semibold tracking-tight">{{ aqiData['pm2.5'] || 'N/A' }}</div>
           </div>
           <div class="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors">
             <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">PM10</div>
-            <div class="text-sm font-semibold tracking-tight">{{ aqiData.iaqi.pm10?.v || 'N/A' }}</div>
+            <div class="text-sm font-semibold tracking-tight">{{ aqiData.pm10 || 'N/A' }}</div>
           </div>
           <div class="bg-white/5 rounded-xl p-2 text-center border border-white/5 hover:border-white/10 transition-colors">
-            <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">Temp</div>
-            <div class="text-sm font-semibold tracking-tight">{{ aqiData.iaqi.t?.v || '--' }}°C</div>
+            <div class="text-[9px] text-gray-500 font-bold uppercase mb-1">O3</div>
+            <div class="text-sm font-semibold tracking-tight">{{ aqiData.o3 || '--' }} <span class="text-[9px]">ppb</span></div>
           </div>
         </div>
       </div>
@@ -231,8 +226,8 @@ onMounted(async () => {
           <RefreshCw :class="['w-3 h-3', loading ? 'animate-spin' : '']" /> 重整數據
         </button>
         <div class="flex items-center gap-2">
-           <span v-if="selectedStationUid !== 'auto'" class="text-[9px] text-gray-600 font-mono uppercase">UID: {{ aqiData.city.name.includes('@') ? aqiData.city.name.split('@')[1] : selectedStationUid }}</span>
-           <span class="text-[9px] text-gray-600 font-mono" title="Location data is used only for proximity calculations via WAQI API and is not stored.">ID: {{ id }}</span>
+           <span v-if="selectedStationUid !== 'auto'" class="text-[9px] text-gray-600 font-mono uppercase">ID: {{ aqiData.siteid }}</span>
+           <span class="text-[9px] text-gray-600 font-mono" title="Location data is used only for proximity calculations via MOENV API and is not stored.">TOOL: {{ id }}</span>
         </div>
       </div>
     </div>
