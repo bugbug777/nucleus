@@ -1,20 +1,14 @@
+import { fetchAllAqiData } from './aqi';
+
 export interface Station {
-  uid: number;
+  uid: string; // Using sitename as uid
   name: string;
 }
 
-let stationsCache: Station[] | null = null;
-
-export async function loadTaiwanStations(): Promise<Station[]> {
-  if (stationsCache) {
-    return stationsCache;
-  }
-  
-  const response = await fetch(`${import.meta.env.BASE_URL}taiwan-stations.json`);
-  if (!response.ok) {
-    throw new Error('Failed to load Taiwan stations data');
-  }
-  
-  stationsCache = await response.json();
-  return stationsCache;
+export async function loadTaiwanStations(apiKey: string): Promise<Station[]> {
+  const records = await fetchAllAqiData(apiKey);
+  return records.map(r => ({
+    uid: r.sitename,
+    name: r.sitename
+  }));
 }
